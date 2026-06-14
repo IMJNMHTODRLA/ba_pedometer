@@ -3,9 +3,11 @@ abstract interface class ThemeImages {
 }
 
 abstract class Theme {
-	ThemeImages get images;
+	ThemeImages get defaultImage;
 
-	void name(params) {
-		//
-	}
+	List<(String, ThemeImages)>? getTextAndImage(
+		final int steps,
+		final int stopTime,
+		final int sameLocationTime
+	);
 }

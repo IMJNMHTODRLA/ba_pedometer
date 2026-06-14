@@ -6,8 +6,26 @@ extension DurationExtension on Duration {
 }
 
 extension WidgetExtension on Widget {
-	Widget toAlign(final double x, final double y) =>
-		Align(alignment: Alignment(x, y), child: this);
+	Widget toOnTap(void Function()? onTap) =>
+		GestureDetector(onTap: onTap, child: this);
+
+	Widget toAlign(
+		final double x, final double y,
+		{final bool isOverlap = false}
+	) {
+		final Align alignChild = Align(
+			alignment: Alignment(x, y),
+			child: this,
+		);
+
+		if (isOverlap) {
+			return Positioned.fill(
+				child: alignChild,
+			);
+		}
+
+		return alignChild;
+	}
 }
 
 extension TimerExtension on void Function(Timer timer) {
@@ -18,4 +36,13 @@ extension TimerExtension on void Function(Timer timer) {
 extension Timer2Extension on void Function() {
 	Timer runTimer(final Duration duration) =>
 		Timer(duration, () => this());
+}
+
+extension ListExtension<T> on List<T> {
+	T? getOrNull(int index) {
+		if (index >= 0 && index < length) {
+			return this[index];
+		}
+		return null;
+	}
 }

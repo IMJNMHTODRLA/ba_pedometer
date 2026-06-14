@@ -6,18 +6,18 @@ import 'dart:async';
 import 'package:ba_pedometer/pedometer/pedometer.dart';
 import 'package:ba_pedometer/location/location.dart';
 
-class PerdometerScreen extends StatefulWidget {
-    const PerdometerScreen({super.key, required this.title});
+import 'package:ba_pedometer/main/theme/theme.dart' as ba;
 
-    final String title;
+class PerdometerScreen extends StatefulWidget {
+    const PerdometerScreen({super.key, required this.theme});
+
+    final ba.Theme theme;
 
     @override
     State<PerdometerScreen> createState() => _PerdometerScreenState();
 }
 
 class _PerdometerScreenState extends State<PerdometerScreen> {
-	final int _keiAngryTime = 30;
-
 	final Pedometer _pedometer = Pedometer();
 	final Location _location = Location();
 
@@ -25,6 +25,51 @@ class _PerdometerScreenState extends State<PerdometerScreen> {
 	int _stopTime = 0;
 	int _sameLocationTime = 0;
 	
+	late ba.ThemeImages _nowImage = widget.theme.defaultImage;
+	String? _nowText;
+	bool _isSendText = false;
+
+	void _clickGetText() async {
+		if (_isSendText) return;
+
+		List<(String, ba.ThemeImages)>? textList = widget.theme.getTextAndImage(
+			_pedometer.stpes,
+			_stopTime,
+			_sameLocationTime
+		);
+
+		if (textList == null) return;
+
+		textList = textList.map((entry) {
+			final (String text, ba.ThemeImages image) = entry;
+
+			final String stringSteps = _pedometer.stpes.toString();
+			final String replaceText = text.replaceAll("%step%", stringSteps);
+
+			return (replaceText, image);
+		}).toList();
+
+		_isSendText = true;
+
+		for (
+			final (String text, ba.ThemeImages image) 
+			in textList
+		) {
+			setState(() {
+				_nowImage = image;
+				_nowText = text;
+			});
+
+			final int delay = text.length * 110;
+			await Future.delayed(Duration(milliseconds: delay)); 
+		}
+		
+		_nowImage = widget.theme.defaultImage;
+		_nowText = null;
+
+		_isSendText = false;
+	}
+
 	void _loopTimer() {
 		if (_secondLoopTimer != null) return;
 
@@ -63,23 +108,21 @@ class _PerdometerScreenState extends State<PerdometerScreen> {
 			.difference(location.timestamp)
 			.inSeconds;
 	}
-
+	
 	@override
 	void initState() {
 		super.initState();
 
-		_pedometer.runListen();
-		_loopTimer();
-
 		_pedometer.notifyListeners = () {
-			if (mounted) setState(() {});
-		}; //TODO: 나중에 생각
-
-		_location.notifyLocation = (Position _) {
-			if (mounted) setState(() {});
+			if (!mounted) setState(() {});
+		};
+		_location.notifyListeners = () {
+			if (!mounted) setState(() {});
 		};
 
+		_pedometer.runListen();
 		_location.runListen();
+		_loopTimer();
 	}
 
 	@override
@@ -93,52 +136,51 @@ class _PerdometerScreenState extends State<PerdometerScreen> {
 
     @override
     Widget build(BuildContext context) {
-        return Scaffold(
-            /*appBar: AppBar(
-                backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-                title: Text(widget.title),
-            ),*/
+		final double screenWidth = MediaQuery.of(context).size.width;
+		final double screenHeight = MediaQuery.of(context).size.height;
 
+        return Scaffold(
 			backgroundColor: Color(0xFFE594AB),
 			
             body: Stack(
 				children: [
 					Text(
-						'${_pedometer.stpes} 걸음\n멈춘 시간: ${_stopTime}s\n위치 안 변하는 시간: ${_sameLocationTime}s',
+						'${_pedometer.stpes} 걸음',
 						style: TextStyle(
-							fontSize: 40,
+							fontSize: 45,
 							fontWeight: FontWeight.bold,
 							color: const Color(0xFFFFFFFF),
 						),
-					).toAlign(0.0, -0.5),
+					).toAlign(0.0, -0.7),
+
+					Image.asset(
+						_nowImage.path,
+
+						width: screenWidth * 0.85,
+						height: screenHeight * 0.85,
+
+						fit: BoxFit.contain,
+					)
+					.toAlign(0.5, 1.85)
+					.toOnTap(() => _clickGetText()),
 
 					Text(
-						'KEI: 도대체 얼마나 쉬는건데요!!\n선생: 저... 저기 케이, 일단 진정하고.....',
+						_nowText ?? '',
 						style: TextStyle(
 							fontSize: 20,
 							fontWeight: FontWeight.bold,
-							color: const Color(0xFFFFFFFF)
-								.withValues(
-									alpha: (_stopTime > _keiAngryTime)
-										? 1.0 : 0.0
-								),
-						),
-					).toAlign(0.0, 0.1),
 
-					Text(
-						'KEI: 위치는 안 변하는데 걸음 횟수는 올라가네요...?\n선생: 아',
-						style: TextStyle(
-							fontSize: 20,
-							fontWeight: FontWeight.bold,
-							color: const Color(0xFFFFFFFF)
+							color: Colors.black
 								.withValues(
-									alpha: (
-										_sameLocationTime > 30 &&
-										_stopTime < 1
-									) ? 1.0 : 0.0
+									alpha: (_nowText != null) ? 1.0 : 0.0
+								),
+
+							backgroundColor: Colors.white
+								.withValues(
+									alpha: (_nowText != null) ? 1.0 : 0.0
 								),
 						),
-					).toAlign(0.0, 0.3)
+					).toAlign(0.0, 0.1)
 				],
             ),
         );

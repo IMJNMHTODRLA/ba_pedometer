@@ -1,12 +1,10 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:ba_pedometer/error_screen.dart';
+import 'package:ba_pedometer/ui_updater.dart';
 
 import 'dart:async';
 
-class Location {
-	//List<Position> positionList = [];
-	//필요없다고 판단
-	
+class Location with UiUpdater {
 	Position? lastPosition;
 
 	StreamSubscription<Position>? _positionStreamSubscription;
@@ -34,24 +32,15 @@ class Location {
 		_positionStreamSubscription = Geolocator.getPositionStream(
 			locationSettings: const LocationSettings(
 				accuracy: LocationAccuracy.bestForNavigation,
-				//distanceFilter: 1,
-				//TODO: 테스트 때는 삭제
+				distanceFilter: 1,
 			)
 		).listen((Position position) {
-			//positionList.add(position);
 			lastPosition = position;
-
-			_updateLocation(position);
+			updateUI();
 		});
 	}
 
 	void stopLocation() {
 		_positionStreamSubscription?.cancel();
-	}
-
-	void Function(Position)? notifyLocation;
-
-	void _updateLocation(Position position) {
-		if (notifyLocation != null) notifyLocation!(position);
 	}
 }
